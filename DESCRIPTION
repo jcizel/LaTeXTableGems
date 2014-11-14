@@ -1,0 +1,15 @@
+Package: LaTeXTableGems
+Title: What the package does (one line)
+Version: 0.1
+Authors@R: as.person(c(
+    "Janko Cizel <jcizel@gmail.com> [aut, cre]"))
+Description: What the package does (one paragraph)
+Depends:
+    R (>= 3.1.1),
+Imports:
+    data.table,
+    RJSONIO,
+    xlsx
+LazyData: true
+VignetteBuilder: knitr
+License: What license is it under?
