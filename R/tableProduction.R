@@ -30,8 +30,8 @@ dataTableToInnerLatex <- function(dt,
               sanitize.text.function = LaTeXTableGems:::.sanitize)
     })
     
-    LaTeXTableGems:::.innerTEX(out,
-                               file = outfile)
+    LaTeXTableGems:::innerTEX(out,
+                              file = outfile)
 
     return(out)
 }
