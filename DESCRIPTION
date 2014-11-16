@@ -8,8 +8,7 @@ Depends:
     R (>= 3.1.1),
 Imports:
     data.table,
-    RJSONIO,
-    xlsx
+    xtable
 LazyData: true
 VignetteBuilder: knitr
 License: What license is it under?
