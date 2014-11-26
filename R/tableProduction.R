@@ -35,3 +35,43 @@ dataTableToInnerLatex <- function(dt,
 
     return(out)
 }
+
+createLatexTableHeader <- function(
+    table.parameters =  paste0('{P{1cm}*{',length(unlist(definition))-1,'}{R{2.2cm}}}'),
+    definition =
+        list(list(list('')),
+             'Non-Financial Score'=
+                 list('Rating',
+                      'Bond Spread',
+                      'CDS Spread'),
+             'Banking Score (Closure Model)' =
+                 list('Rating',
+                      'Bond Spread',
+                      'CDS Spread'),
+             'Banking Score (Closure Model)' =
+                 list('Rating',
+                      'Bond Spread',
+                      'CDS Spread')),
+    outfile = '~/Downloads/test.tex'
+){
+    r1 <- names(definition)
+    l1 <- sapply(definition, length)
+
+    o1 <- paste0(paste(paste0('\\multicolumn{',l1,'}{c}{',r1,'}'), collapse = ' & '),'\\\\')
+
+    r2 <-
+        foreach(x = 1:length(definition),
+                .combine = c) %do% {
+                    unlist(definition[[x]])
+                }
+
+    o2 <- paste0(paste(paste0('\\multicolumn{1}{c}{',r2,'}'), collapse = ' & '),'\\\\')
+
+    out <- c(o1,o2)
+    
+    sink(outfile)
+    cat(paste(out, collapse = "\n"))
+    sink()
+    cat(paste0("The table header was written to the file '", outfile, "'.\n"))
+    return(out)
+}
