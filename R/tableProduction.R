@@ -56,8 +56,22 @@ createLatexTableHeader <- function(
 ){
     r1 <- names(definition)
     l1 <- sapply(definition, length)
-
     o1 <- paste0(paste(paste0('\\multicolumn{',l1,'}{c}{',r1,'}'), collapse = ' & '),'\\\\')
+
+    i <- 1
+    .m1 <- list()
+    for (x in 1:length(l1)) {
+        if (names(l1[x])=='') {
+            i <<- i + 1
+            next
+        }
+        else {
+            .m1[[length(.m1)+1]] <- paste0('\\cmidrule(lr){',i,'-',i + l1[[x]]-1,'}')
+            i <<- i + l1[[x]]
+        }
+    }
+    
+    m1 <- paste(.m1,collapse = '')
 
     r2 <-
         foreach(x = 1:length(definition),
@@ -67,7 +81,13 @@ createLatexTableHeader <- function(
 
     o2 <- paste0(paste(paste0('\\multicolumn{1}{c}{',r2,'}'), collapse = ' & '),'\\\\')
 
-    out <- c(o1,o2)
+    m2 <- '\\midrule'
+        
+    out <- c(table.parameters,
+             o1,
+             m1,
+             o2,
+             m2)
     
     sink(outfile)
     cat(paste(out, collapse = "\n"))
