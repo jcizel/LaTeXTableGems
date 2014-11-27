@@ -56,7 +56,7 @@ createLatexTableHeader <- function(
 ){
     r1 <- names(definition)
     l1 <- sapply(definition, length)
-    o1 <- paste0(paste(paste0('\\multicolumn{',l1,'}{c}{',r1,'}'), collapse = ' & '),'\\\\')
+    o1 <- paste0(paste(paste0('\\multicolumn{',l1,'}{c}{',r1,'}'), collapse = '\n & '),'\\\\')
 
     i <- 1
     .m1 <- list()
@@ -79,7 +79,7 @@ createLatexTableHeader <- function(
                     unlist(definition[[x]])
                 }
 
-    o2 <- paste0(paste(paste0('\\multicolumn{1}{c}{',r2,'}'), collapse = ' & '),'\\\\')
+    o2 <- paste0(paste(paste0('\\multicolumn{1}{c}{',r2,'}'), collapse = '\n & '),'\\\\')
 
     m2 <- '\\midrule'
         
