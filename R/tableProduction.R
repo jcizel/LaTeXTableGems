@@ -62,12 +62,12 @@ createLatexTableHeader <- function(
     .m1 <- list()
     for (x in 1:length(l1)) {
         if (names(l1[x])=='') {
-            i <<- i + 1
+            i <- i + 1
             next
         }
         else {
             .m1[[length(.m1)+1]] <- paste0('\\cmidrule(lr){',i,'-',i + l1[[x]]-1,'}')
-            i <<- i + l1[[x]]
+            i <- i + l1[[x]]
         }
     }
     
