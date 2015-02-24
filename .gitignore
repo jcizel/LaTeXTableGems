@@ -1,3 +1,9 @@
 .Rproj.user
 .Rhistory
+.apikey 
 .RData
+**.DS_Store
+**~
+**#
+**.csv
+scratch/
