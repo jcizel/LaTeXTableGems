@@ -1,4 +1,0 @@
-
-dataTableToInnerLatex <- function(dt){
-    
-}
