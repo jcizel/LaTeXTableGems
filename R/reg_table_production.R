@@ -21,7 +21,7 @@ sanitizer <- function(str){
 ##' @author Janko Cizel
 ##'
 ##' @export
-##' @import data.table pipeR rlist dplyr
+##' @import data.table pipeR rlist dplyr rprintf
 extract_selected <- function(
     obj,
     select = c('beta','se','pval'),
