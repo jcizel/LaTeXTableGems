@@ -1,13 +1,32 @@
-sanitizer <- function(str){
-    str %>>%
-    str_replace_all(
-        pattern = "\\_",
-        replacement = "\\\\_"
-    ) %>>%
-    str_replace_all(
-        pattern = "&",
-        replacement = "\\&"
-    )    
+sanitizer <- function(str, type = 'latex'){
+    if (type == 'latex'){
+        str %>>%
+        gsub("\\\\", "SANITIZE.BACKSLASH", result)
+        gsub("$", "\\$", fixed = TRUE) %>>%
+        gsub(">", "$>$", fixed = TRUE) %>>%
+        gsub("<", "$<$", fixed = TRUE) %>>%
+        gsub("|", "$|$", fixed = TRUE) %>>%
+        gsub("{", "\\{", fixed = TRUE) %>>%
+        gsub("}", "\\}", fixed = TRUE) %>>%
+        gsub("%", "\\%", fixed = TRUE) %>>%
+        gsub("&", "\\&", fixed = TRUE) %>>%
+        gsub("_", "\\_", fixed = TRUE) %>>%
+        gsub("#", "\\#", fixed = TRUE) %>>%
+        gsub("^", "\\verb|^|", fixed = TRUE) %>>%
+        gsub("~", "\\~{}", fixed = TRUE) %>>%
+        gsub("SANITIZE.BACKSLASH", "$\\backslash$", fixed = TRUE) ->
+            result
+    } else if (type == 'html') {
+        str %>>%
+        gsub("&", "&amp;", fixed = TRUE)
+        gsub(">", "&gt;", fixed = TRUE)
+        gsub("<", "&lt;", fixed = TRUE) ->
+            result
+    } else {
+        stop('Type must be either `latex` or `html`')
+    }
+    
+    return(result)
 }
 
 ##' Extract desired stats from R estimation object and return result in data.table
@@ -191,6 +210,32 @@ parse_result_list_coef<- function(
 
 
 
+extract_static_elements <- function(
+    obj = NULL,
+    digits =3
+){
+    obj %>>%
+    summary %>>%
+    list.filter(
+        length(.) == 1 &
+            !is.list(.)
+    ) %>>%
+    list.map({
+        x = .
+
+        if (!is.integer(x) & !is.logical(x) & is.numeric(x))
+            x %>>% round(digits)
+        else
+            x
+    }) %>>%
+    ({
+        data.table(
+            id = names(.),
+            value = sprintf("%s", .)
+        )
+    })
+}
+
 
 
 ##' Given a list of objects with regression results, return a data.table that
@@ -207,6 +252,8 @@ parse_result_list_static <- function(
     obj_list = NULL,
     digits = 3
 ){
+    names(obj_list) <- 1:length(obj_list)
+    
     obj_list %>>%
     list.map(
         . %>>%
@@ -358,3 +405,7 @@ parse_result_list_model_names<- function(
         )
     )
 }
+
+
+
+

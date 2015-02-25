@@ -9,7 +9,9 @@ Depends:
 Imports: data.table,
 	 pipeR,
 	 rlist,
-	 dplyr	
+	 dplyr,
+	 xtable,
+	 stringr
 License: MIT + file LICENSE
 LazyData: true
 VignetteBuilder: knitr

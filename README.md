@@ -1,4 +1,5 @@
 # **rtable**: Scaffold LaTeX and HTML Tables from R Regression Objects with Ease #
+[![Travis-CI Build Status](https://travis-ci.org/jcizel/LaTeXTableGems.png?branch=master)](https://travis-ci.org/jcizel/rtable)
 
 ### Warning: this is an early development version. 
 
