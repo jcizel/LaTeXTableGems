@@ -5,7 +5,7 @@
 \title{Extract desired stats from R estimation object and return result in data.table}
 \usage{
 extract_selected(obj, select = c("beta", "se", "pval"), digits = 3,
-  stars = FALSE)
+  stars = FALSE, type = "html")
 }
 \arguments{
 \item{obj}{}

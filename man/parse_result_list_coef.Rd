@@ -5,7 +5,8 @@
 \title{Given a list of objects with regression results, return a data.table with
 publication-ready formatted results.}
 \usage{
-parse_result_list_coef(obj_list = NULL, digits = 3, stars = TRUE)
+parse_result_list_coef(obj_list = NULL, digits = 3, stars = TRUE,
+  type = "html")
 }
 \arguments{
 \item{obj_list}{a list of objects with regression results}

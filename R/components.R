@@ -1,4 +1,7 @@
+## PATTERNS
 
+
+## HTMLCOMPONENTS
 
 htmlcomp <- function(){    
     comment <- function(str) "<!--%s-->\n" %>>% sprintf(str)

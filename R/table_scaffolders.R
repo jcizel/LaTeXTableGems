@@ -1,3 +1,68 @@
+htmltable_inner <- function(data){
+    data %>>%
+    apply(1,
+          function(r){
+              r %>>%
+              list.map({
+                  e = .
+                  
+                  if (.i == 1)
+                      tags$td(e %>>% HTML, style = 'text-align:left')
+                  else 
+                      tags$td(e %>>% HTML)                     
+              }) ->
+                  o
+
+              names(o) <- NULL
+
+              return(tags$tr(o))
+          }) ->
+              out
+    return(out)
+}
+
+
+
+##' Produce a HTML table from a list of regression objects
+##' 
+##' @param obj_list a list of regression objects
+##' @param digits number of digits to present in result table
+##' @param stars 
+##' @param print render the resulting table?
+##' @return html table
+##' @author Janko Cizel
+##' 
+##' @export
+htmltable <- function(
+    obj_list = NULL,
+    digits = 3,
+    stars = TRUE,
+    print = TRUE
+){
+    N = length(obj_list) + 1
+    tags$table(
+        style = 'text-align:center',
+        tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black')),    
+        parse_result_list_coef(obj_list,
+                               digits = digits,
+                               stars = stars,
+                               type = 'html') %>>% htmltable_inner,
+        tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black')),
+        parse_result_list_static(obj_list,
+                                 digits = digits,
+                                 stars = stars,
+                                 type = 'html') %>>% htmltable_inner,
+        tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black'))
+    ) ->
+        tab
+
+    if (print == TRUE){
+        html_print(tab)
+    }
+    
+    return(tab)
+}
+
 ##' Scaffold LaTeX table from a data.frame
 ##'
 ##' 
@@ -16,6 +81,7 @@
 ##' @import data.table pipeR rlist dplyr
 scaffoldTable <- function(
     data = NULL,
+    type = 'latex',
     header = NULL,
     table.width = 14,                    #cm
     digits = 2,

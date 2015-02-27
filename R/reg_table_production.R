@@ -1,26 +1,42 @@
+#' @import data.table pipeR rlist dplyr rprintf xtable stringr htmltools
+NULL
+
+star_patterns = list(
+    html = "%s<sup>%s</sup>",
+    latex = "%s$%s$"    
+)
+
+star_signif = c(
+    `10%` = "*",
+    `5%` = "**",
+    `1%` = "***"
+)
+
+## sprintf(star_patterns[['html']], 10, star_signif)
+
 sanitizer <- function(str, type = 'latex'){
     if (type == 'latex'){
         str %>>%
-        gsub("\\\\", "SANITIZE.BACKSLASH", result)
-        gsub("$", "\\$", fixed = TRUE) %>>%
-        gsub(">", "$>$", fixed = TRUE) %>>%
-        gsub("<", "$<$", fixed = TRUE) %>>%
-        gsub("|", "$|$", fixed = TRUE) %>>%
-        gsub("{", "\\{", fixed = TRUE) %>>%
-        gsub("}", "\\}", fixed = TRUE) %>>%
-        gsub("%", "\\%", fixed = TRUE) %>>%
-        gsub("&", "\\&", fixed = TRUE) %>>%
-        gsub("_", "\\_", fixed = TRUE) %>>%
-        gsub("#", "\\#", fixed = TRUE) %>>%
-        gsub("^", "\\verb|^|", fixed = TRUE) %>>%
-        gsub("~", "\\~{}", fixed = TRUE) %>>%
-        gsub("SANITIZE.BACKSLASH", "$\\backslash$", fixed = TRUE) ->
+        gsub(pattern = "\\\\", replacement = "SANITIZE.BACKSLASH") %>>%
+        ## gsub(pattern = "$", replacement = "\\$", fixed = TRUE) %>>%
+        gsub(pattern = ">", replacement = "$>$", fixed = TRUE) %>>%
+        gsub(pattern = "<", replacement = "$<$", fixed = TRUE) %>>%
+        gsub(pattern = "|", replacement = "$|$", fixed = TRUE) %>>%
+        ## gsub(pattern = "{", replacement = "\\{", fixed = TRUE) %>>%
+        ## gsub(pattern = "}", replacement = "\\}", fixed = TRUE) %>>%
+        gsub(pattern = "%", replacement = "\\%", fixed = TRUE) %>>%
+        gsub(pattern = "&", replacement = "\\&", fixed = TRUE) %>>%
+        gsub(pattern = "_", replacement = "\\_", fixed = TRUE) %>>%
+        gsub(pattern = "#", replacement = "\\#", fixed = TRUE) %>>%
+        ## gsub(pattern = "^", replacement = "\\verb|^|", fixed = TRUE) %>>%
+        gsub(pattern = "~", replacement = "\\~{}", fixed = TRUE) %>>%
+        gsub(pattern = "SANITIZE.BACKSLASH", replacement = "$\\backslash$", fixed = TRUE) ->
             result
     } else if (type == 'html') {
         str %>>%
-        gsub("&", "&amp;", fixed = TRUE)
-        gsub(">", "&gt;", fixed = TRUE)
-        gsub("<", "&lt;", fixed = TRUE) ->
+        gsub(pattern = "&", replacement = "&amp;", fixed = TRUE)
+        gsub(pattern = ">", replacement = "&gt;", fixed = TRUE)
+        gsub(pattern = "<", replacement = "&lt;", fixed = TRUE) ->
             result
     } else {
         stop('Type must be either `latex` or `html`')
@@ -40,12 +56,13 @@ sanitizer <- function(str, type = 'latex'){
 ##' @author Janko Cizel
 ##'
 ##' @export
-##' @import data.table pipeR rlist dplyr rprintf
+##' 
 extract_selected <- function(
     obj,
     select = c('beta','se','pval'),
     digits = 3,
-    stars = FALSE
+    stars = FALSE,
+    type = 'html'                       #'html' or 'latex'
 ){
     obj[select] %>>%
     list.map({
@@ -78,27 +95,21 @@ extract_selected <- function(
     if (stars == TRUE){
         if (!'pval' %in% names(o))
             stop('`pval` must be included in `select` list in order to produce significance stars')
-
-        star_char = c(
-            "$^{***}$",
-            "$^{**}$",
-            "$^{*}$"                        
-        )
         
         o %>>%
         apply(1, function(r){
             if (r[['pval']] <= 0.01)
-                sprintf("%s%s",
+                sprintf(star_patterns[[type]],
                         r[['beta']],
-                        star_char[1])
+                        star_signif[3])
             else if ((r[['pval']] > 0.01) & (r[['pval']] <= 0.05))
-                sprintf("%s%s",
+                sprintf(star_patterns[[type]],
                         r[['beta']],
-                        star_char[2])
+                        star_signif[2])
             else if ((r[['pval']] > 0.05) & (r[['pval']] <= 0.10))
-                sprintf("%s%s",
+                sprintf(star_patterns[[type]],
                         r[['beta']],
-                        star_char[3])
+                        star_signif[1])
             else
                 sprintf("%s",
                         r[['beta']])
@@ -106,7 +117,6 @@ extract_selected <- function(
             beta_char
 
         o[, beta.star := beta_char]
-
     }
 
     ## Format standard errors
@@ -147,11 +157,11 @@ extract_selected <- function(
 ##' @author Janko Cizel
 ##'
 ##' @export
-##' @import data.table pipeR rlist dplyr
 parse_result_list_coef<- function(
     obj_list = NULL,
     digits = 3,
-    stars = TRUE
+    stars = TRUE,
+    type = 'html'
 ){
     ## Number each model
     names(obj_list) <- 1:length(obj_list) %>>% as.character
@@ -160,7 +170,10 @@ parse_result_list_coef<- function(
     obj_list %>>%
     list.map(
         . %>>%
-        extract_selected(select = select, stars = stars, digits = digits) %>>%
+        extract_selected(select = select,
+                         stars = stars,
+                         digits = digits,
+                         type = type) %>>%
         setnames(
             old = 'value',
             new = sprintf("(%s)", .name)
@@ -212,7 +225,8 @@ parse_result_list_coef<- function(
 
 extract_static_elements <- function(
     obj = NULL,
-    digits =3
+    digits =3,
+    type = 'html'
 ){
     obj %>>%
     summary %>>%
@@ -250,7 +264,9 @@ extract_static_elements <- function(
 ##' @export
 parse_result_list_static <- function(
     obj_list = NULL,
-    digits = 3
+    digits = 3,
+    stars = NULL,
+    type = 'html'
 ){
     names(obj_list) <- 1:length(obj_list)
     

@@ -4,9 +4,9 @@
 \alias{scaffoldTable}
 \title{Scaffold LaTeX table from a data.frame}
 \usage{
-scaffoldTable(data = NULL, header = NULL, table.width = 14, digits = 2,
-  position = "C", caption = "Test table", label = "test.table",
-  notes = "Test note.", outfile = NULL)
+scaffoldTable(data = NULL, type = "latex", header = NULL,
+  table.width = 14, digits = 2, position = "C", caption = "Test table",
+  label = "test.table", notes = "Test note.", outfile = NULL)
 }
 \arguments{
 \item{data}{}
