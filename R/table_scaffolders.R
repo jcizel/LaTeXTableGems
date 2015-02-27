@@ -36,26 +36,47 @@ htmltable_inner <- function(data){
 htmltable <- function(
     obj_list = NULL,
     digits = 3,
+    head = TRUE,
     stars = TRUE,
     print = TRUE
-){
+){   
     N = length(obj_list) + 1
-    tags$table(
-        style = 'text-align:center',
-        tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black')),    
-        parse_result_list_coef(obj_list,
-                               digits = digits,
-                               stars = stars,
-                               type = 'html') %>>% htmltable_inner,
-        tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black')),
-        parse_result_list_static(obj_list,
-                                 digits = digits,
-                                 stars = stars,
-                                 type = 'html') %>>% htmltable_inner,
-        tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black'))
+
+    if (head == TRUE){
+        h = header(obj_list, type = 'html')
+        list(h[[1L]]$text,
+             h[[1L]]$line,
+             h[[2L]]$text,
+             h[[2L]]$line) ->
+                 h
+    } else {
+        h = NULL
+    }
+    
+   c(
+       style = 'text-align:center',
+       list(tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black'))),
+       h,
+       list(tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black'))),       
+       parse_result_list_coef(obj_list,
+                              digits = digits,
+                              stars = stars,
+                              type = 'html') %>>% htmltable_inner,
+       list(tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black'))),
+       parse_result_list_static(obj_list,
+                                digits = digits,
+                                stars = stars,
+                                type = 'html') %>>% htmltable_inner,
+       list(tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black')))
+    ) ->
+        o
+
+    do.call(
+        tags$table,
+        o
     ) ->
         tab
-
+    
     if (print == TRUE){
         html_print(tab)
     }

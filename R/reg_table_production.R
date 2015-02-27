@@ -308,7 +308,7 @@ parse_result_list_static <- function(
 ##' @author Janko Cizel
 ##'
 ##' @export
-parse_result_list_model_names<- function(
+header_preparation <- function(
     obj_list = NULL
 ){
     obj_list %>>%
@@ -332,7 +332,7 @@ parse_result_list_model_names<- function(
         o
 
     o[, row := 1:.N + 1]
-    
+
     o[, group.model := rleid(model_name)]
     o[, group.model.row := 1:.N, by = group.model]
     o[, group.model.nobs := .N, by = group.model]
@@ -343,85 +343,134 @@ parse_result_list_model_names<- function(
     o[, group.row := 1:.N, by = group]
     o[, group.nobs := .N, by = group]
     o[, group.min := min(row), by = group]
-    o[, group.max := max(row), by = group]                    
+    o[, group.max := max(row), by = group]
 
-
-    o[group.model.row == 1,
-      group.model.name := sprintf(
-                           fmt = "\\multicolumn{%s}{c}{%s}",
-                           group.model.nobs,
-                           model_name)]
-
-    o[group.model.row == 1,
-      group.model.line := sprintf(
-                           fmt = "\\cmidrule(lr){%s-%s}",
-                           group.model.min,
-                           group.model.max)]    
-
-    o[group.row == 1,
-      group.name := sprintf(
-                           fmt = "\\multicolumn{%s}{c}{%s}",
-                           group.nobs,
-                           model_depvar)]
-
-    o[group.row == 1,
-      group.line := sprintf(
-                           fmt = "\\cmidrule(lr){%s-%s}",
-                           group.min,
-                           group.max)]
-
-
-    ## Output text 
-    o$group.model.name %>>%
-    (
-        .[!is.na(.)]
-    ) %>>%
-    paste(collapse = " & ") %>>%
-    sprintf(
-        fmt = "& %s\\\\ \n"
-    ) ->
-        group_model_name
-
-    o$group.model.line %>>%
-    (
-        .[!is.na(.)]
-    ) %>>%
-    paste(collapse = " ") %>>%
-    sprintf(
-        fmt = "%s\\\\ \n"
-    ) ->
-        group_model_line
-
-    o$group.name %>>%
-    (
-        .[!is.na(.)]
-    ) %>>%
-    paste(collapse = " & ") %>>%
-    sprintf(
-        fmt = "& %s\\\\ \n"
-    ) ->
-        group_name
-
-    o$group.line %>>%
-    (
-        .[!is.na(.)]
-    ) %>>%
-    paste(collapse = " ") %>>%
-    sprintf(
-        fmt = "%s\\\\ \n"
-    ) ->
-        group_line
-    
-    return(
+    o %>>%
+    split(factor(.$model_name, levels = .$model_name %>>% unique)) %>>%
+    list.map(
         list(
-            group_model_name = group_model_name,
-            group_model_line = group_model_line,
-            group_name = group_name,
-            group_line = group_line
+            name = .name,
+            rows = c(.$group.model.min %>>% unique,
+                .$group.model.max %>>% unique),
+            length = .$group.model.nobs %>>% unique        
         )
-    )
+    ) ->
+        r1
+
+    o %>>%
+    split(interaction(.$model_name %>>% (factor(., levels = . %>>% unique)),
+                      .$model_depvar %>>% (factor(., levels = . %>>% unique)))) %>>%
+    list.map(
+        list(
+            name = .$model_depvar %>>% unique,
+            rows = c(.$group.min %>>% unique,
+                .$group.max %>>% unique),
+            length = .$group.nobs %>>% unique        
+        )
+    ) ->
+        r2
+
+    list(
+        r1,
+        r2
+    ) ->
+        out
+    
+    return(out)
 }
 
+
+header_latex <- function(
+    obj_list = NULL
+){
+    obj_list %>>%
+    header_preparation ->
+        header
+
+    header %>>%
+    list.map({
+        . %>>%
+        list.map({
+            sprintf(
+                fmt = "\\multicolumn{%s}{c}{%s}",
+                .$length,
+                .$name
+            )      
+        }) ->
+            text
+
+        . %>>%
+        list.map({
+            sprintf(
+                fmt = "\\cmidrule(lr){%s-%s}",
+                .$rows[[1L]],
+                .$rows[[2L]]
+            )      
+        }) ->
+            line
+
+        list(
+            text = text %>>% unlist %>>% paste(collapse = ' & '),
+            line = line %>>% unlist %>>% paste(collapse = ' ')
+        )
+    })    
+}
+
+
+header_html <- function(
+    obj_list = NULL
+){
+    obj_list %>>%
+    header_preparation ->
+        header
+
+    header %>>%
+    list.map({
+        row <- .
+
+        row %>>%
+        list.map(
+            tags$td(
+                .$name,
+                colspan = .$length
+            )
+        ) %>>%
+        (tags$tr(tags$td(),
+                 .)) ->            
+            text
+
+        row %>>%
+        list.map(
+            tags$td(
+                colspan = .$length,
+                style = "border-bottom: 1px solid black"
+            )
+        ) %>>%
+        (tags$tr(tags$td(),
+                 .)) ->
+            line
+
+        list(
+            text = text,
+            line = line
+        )
+    })
+}
+
+
+header <- function(
+    obj_list = NULL,
+    type = 'html'
+){
+    switch(
+        type,
+        'html' = header_html(obj_list),
+        'latex' = header_latex(obj_list)
+    ) ->
+        o
+
+    return(o)
+}
 
 
 
