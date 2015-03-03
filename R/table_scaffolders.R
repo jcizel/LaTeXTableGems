@@ -37,13 +37,38 @@ htmltable <- function(
     obj_list = NULL,
     digits = 3,
     head = TRUE,
+    model_num = TRUE,
     stars = TRUE,
-    print = TRUE
+    print = TRUE,
+    drop_coef = NULL,
+    drop_stats = NULL,
+    label_coef = FALSE,
+    lookup_table_coef = NULL,
+    lookup_table_coef_name_col = NULL,
+    lookup_table_coef_label_col = NULL,
+    label_stats = FALSE,
+    lookup_table_stats = NULL,
+    lookup_table_stats_name_col = NULL,
+    lookup_table_stats_label_col = NULL,
+    label_dep = label_coef,
+    lookup_table_dep = lookup_table_coef,
+    lookup_table_dep_name_col = lookup_table_coef_name_col,
+    lookup_table_dep_label_col = lookup_table_coef_label_col,
+    cellpadding = 1,
+    cellspacing = 1
 ){   
     N = length(obj_list) + 1
 
     if (head == TRUE){
-        h = header(obj_list, type = 'html')
+        h = header(
+            obj_list,
+            type = 'html',
+            label_dep = label_dep,
+            lookup_table_dep = lookup_table_dep,
+            lookup_table_dep_name_col = lookup_table_dep_name_col,
+            lookup_table_dep_label_col = lookup_table_dep_label_col            
+        )
+        
         list(h[[1L]]$text,
              h[[1L]]$line,
              h[[2L]]$text,
@@ -52,21 +77,50 @@ htmltable <- function(
     } else {
         h = NULL
     }
+
+    if (model_num == TRUE){
+        1:(N-1) %>>%
+        sprintf(fmt = '(%s)') %>>%
+        list.map(tags$td(.)) ->
+            m
+
+        names(m) <- NULL
+        
+        tags$tr(tags$td(""),m) ->
+            m        
+    } else {
+        m = NULL
+    }
     
    c(
        style = 'text-align:center',
+       cellpadding = cellpadding,
+       cellspacing = cellspacing,
        list(tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black'))),
        h,
+       list(m),
        list(tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black'))),       
        parse_result_list_coef(obj_list,
                               digits = digits,
                               stars = stars,
-                              type = 'html') %>>% htmltable_inner,
+                              type = 'html',
+                              label_coef = label_coef,
+                              drop_coef = drop_coef,
+                              lookup_table_coef = lookup_table_coef,
+                              lookup_table_coef_name_col = lookup_table_coef_name_col,
+                              lookup_table_coef_label_col = lookup_table_coef_label_col
+                              ) %>>% htmltable_inner,
        list(tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black'))),
        parse_result_list_static(obj_list,
                                 digits = digits,
                                 stars = stars,
-                                type = 'html') %>>% htmltable_inner,
+                                type = 'html',
+                                drop_stats = drop_stats,
+                                label_stats = label_stats,
+                                lookup_table_stats = lookup_table_stats,
+                                lookup_table_stats_name_col = lookup_table_stats_name_col,
+                                lookup_table_stats_label_col = lookup_table_stats_label_col
+                                ) %>>% htmltable_inner,
        list(tags$tr(tags$td(colspan = N, style = 'border-bottom: 1px solid black')))
     ) ->
         o
@@ -196,7 +250,7 @@ $notes
             caption = caption,
             widths = table.widths,
             header = table.header,
-            content = tableContents(data),
+            content = latextable_inner(data),
             label = label,
             notes = notes) ->
                 out
@@ -280,7 +334,7 @@ $inner
     return(out)
 }
 
-tableContents <- function(
+latextable_inner <- function(
     data = NULL,
     digits = 2
 ){
@@ -345,4 +399,213 @@ computeColWidth = function(
         . / sum(.)
     }) %>>%
     as.list
+}
+
+
+
+
+
+
+latextable <- function(
+    obj_list = NULL,
+    digits = 3,
+    head = TRUE,
+    table.width = 14,                    #cm
+    position = "C",    
+    model_num = TRUE,
+    stars = TRUE,
+    print = TRUE,
+    caption = "Test table",
+    label = "test.table",
+    notes = "Test note.",
+    textsize = 'scriptsize',
+    outfile = NULL,    
+    drop_coef = NULL,
+    drop_stats = NULL,
+    label_coef = FALSE,
+    lookup_table_coef = NULL,
+    lookup_table_coef_name_col = NULL,
+    lookup_table_coef_label_col = NULL,
+    label_stats = FALSE,
+    lookup_table_stats = NULL,
+    lookup_table_stats_name_col = NULL,
+    lookup_table_stats_label_col = NULL,
+    label_dep = label_coef,
+    lookup_table_dep = lookup_table_coef,
+    lookup_table_dep_name_col = lookup_table_coef_name_col,
+    lookup_table_dep_label_col = lookup_table_coef_label_col
+){   
+    N = length(obj_list) + 1
+
+    parse_result_list_coef(obj_list,
+                           digits = digits,
+                           stars = stars,
+                           type = 'latex',
+                           label_coef = label_coef,
+                           drop_coef = drop_coef,
+                           lookup_table_coef = lookup_table_coef,
+                           lookup_table_coef_name_col = lookup_table_coef_name_col,
+                           lookup_table_coef_label_col = lookup_table_coef_label_col
+                           ) ->
+                               coefs
+
+    parse_result_list_static(obj_list,
+                             digits = digits,
+                             stars = stars,
+                             type = 'latex',
+                             drop_stats = drop_stats,
+                             label_stats = label_stats,
+                             lookup_table_stats = lookup_table_stats,
+                             lookup_table_stats_name_col = lookup_table_stats_name_col,
+                             lookup_table_stats_label_col = lookup_table_stats_label_col
+                             ) ->
+                                 stats
+    
+    ## ---------------------------------------------------------------------- ##
+    ## Define widths                                                          ##
+    ## ---------------------------------------------------------------------- ##
+    computeColWidth(
+        data = list(coefs,stats) %>>% rbindlist,
+        digits = digits
+    ) %>>%
+    list.map({
+        if (.i == 1){
+            sprintf(
+                fmt = "P{%scm}",
+                table.width * . 
+            )
+        } else {
+            sprintf(
+                fmt = "%s{%scm}",
+                position,
+                table.width * . 
+            )
+        }    
+    }) %>>%
+    paste(collapse = "") %>>%
+    sprintf(fmt = "%s") ->
+        table.widths
+
+
+    ## ---------------------------------------------------------------------- ##
+    ## Define head                                                            ##
+    ## ---------------------------------------------------------------------- ##    
+    if (head == TRUE){
+        h = header(
+            obj_list,
+            type = 'latex',
+            label_dep = label_dep,
+            lookup_table_dep = lookup_table_dep,
+            lookup_table_dep_name_col = lookup_table_dep_name_col,
+            lookup_table_dep_label_col = lookup_table_dep_label_col            
+        )
+        
+        list(h[[1L]]$text,
+             h[[1L]]$line,
+             h[[2L]]$text,
+             h[[2L]]$line) ->
+                 h
+    } else {
+        h = NULL
+    }
+
+    if (model_num == TRUE){
+        1:(N-1) %>>%
+        sprintf(fmt = '(%s)') %>>%
+        paste(collapse = " & ") %>>%
+        sprintf(fmt = "& %s \\\\") ->
+            m
+    } else {
+        m = NULL
+    }
+    
+   c(
+       h %>>% unlist,
+       m,
+       "\\midrule",
+       coefs %>>% latextable_inner,
+      "\\midrule",
+       stats %>>% latextable_inner
+    ) ->
+        o
+
+    o %>>%
+    paste(collapse = "\n") ->
+        table_content
+
+
+    ## ---------------------------------------------------------------------- ##
+    ## OUTPUT FILE                                                            ##
+    ## ---------------------------------------------------------------------- ##
+    rprintf(x = "
+\\newcolumntype{P}[1]{>{\\raggedright\\arraybackslash}p{#1}}
+\\newcolumntype{C}[1]{>{\\centering\\arraybackslash}p{#1}}
+\\newcolumntype{R}[1]{>{\\raggedleft\\arraybackslash}p{#1}}
+
+\\begin{table}
+
+\\centering
+
+\\begin{threeparttable}
+
+\\caption{$caption}
+
+\\$textsize
+
+\\begin{tabular}{$widths}
+
+\\toprule
+
+$content
+
+\\addlinespace[.75ex]
+\\bottomrule
+
+\\end{tabular}
+
+\\label{tab:$label}
+
+\\begin{tablenotes}
+\\scriptsize
+\\item Notes:
+$notes
+\\end{tablenotes}
+
+\\end{threeparttable}
+
+\\end{table}
+",
+            caption = caption,
+            textsize = textsize,
+            widths = table.widths,
+            content = table_content,
+            label = label,
+            notes = notes) ->
+                out
+
+    if (!is.null(outfile)){
+        sink(outfile)
+        cat(out)
+        sink()
+
+        cat(sprintf("The table header was written to the file '%s'.\n", outfile))
+    }
+
+
+    return(out)
+}
+
+
+rtable <- function(
+    obj_list,
+    type = 'latex',
+    ...
+){
+    o <- switch(
+        type,
+        'latex' = latextable(obj_list = obj_list, ...),
+        'html' = htmltable(obj_list = obj_list, ...)        
+    )
+
+    return(o)
 }

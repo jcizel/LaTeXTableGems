@@ -5,7 +5,8 @@
 \title{Given a list of objects with regression results, return a data.table that
 contains `non-coefficient` estimation results}
 \usage{
-parse_result_list_static(obj_list = NULL, digits = 3)
+parse_result_list_static(obj_list = NULL, digits = 3, stars = NULL,
+  type = "html")
 }
 \arguments{
 \item{obj_list}{}

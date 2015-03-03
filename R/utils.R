@@ -1,55 +1,39 @@
+##' Make labels from a character vector of variable names
+##'
+##' 
+##' @param vars 
+##' @param lookup_table 
+##' @param name_col 
+##' @param label_col 
+##' @param label_pattern
+##' @return character vector of labels, corresponding to the variable names. If
+##' variable name is not available in the lookup table, the returned vector
+##' contains the variable name itself.
+##'
+##' 
+##' @author Janko Cizel
+##'
+##' @export
 make_labels <- function(
     vars = NULL,
     lookup_table = NULL,
     name_col= NULL,
     label_col= NULL,
-    bareLabel = NULL
+    label_pattern = "%s"
 ){
-    .lookup <- (data.table(lookup_table, key = name_col) %>>% unique)[vars]
+    if (is.null(vars) | is.null(lookup_table) | is.null(name_col) | is.null(label_col))
+        stop('`vars`,`lookup_table`,`name_col`, and `label_col` are the required arguments')
 
-    .lookup %>>%
-    plyr::alply(1, as.list) -> .lookup2
+    l <- (data.table(lookup_table, key = name_col) %>>% unique)[vars] %>>% copy
+    l[is.na(get(label_col)), (label_col) := get(name_col)]
 
-    rex <- .lookup2 %>>% list.map(get(name_col) %>>% as.character) %>>% unlist
-
-    if (bareLabel == TRUE){
-        names(x) <-
-            sprintf(
-                "%s",
-                .lookup2 %>>% list.map(get(label_col) %>>% as.character) %>>% unlist
-            )
-    } else {
-        names(x) <-
-            sprintf(
-                "%s; Code: %s",
-                .lookup2 %>>% list.map(get(label_col) %>>% as.character) %>>% unlist,
-                x
-            )
-    }
-
-    x <- x[!is.na(x)]
-
-    return(x)
+    l[[label_col]] %>>%
+    sprintf(
+        fmt = label_pattern
+    ) ->
+        out
+    
+    return(out %>>% as.character)
 }
 
-regression_labels <- function(
-    vars,
-    lookup_table,
-    bareLabel = TRUE
-){
-    vars %>>%
-    .makeLabels(lookup_table= lookup_table,
-                nameCol = "name",
-                labelCol = 'label',
-                bareLabel = bareLabel) %>>%
-    names %>>%
-    gsub(pattern = "&amp;",
-         replacement = " and ") %>>%
-    gsub(pattern = "US$;",
-         replacement = "USD") ->
-             o
 
-    o[o == "NA"] <- vars[o == "NA"]
-
-    return(o)
-}

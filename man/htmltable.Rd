@@ -4,7 +4,8 @@
 \alias{htmltable}
 \title{Produce a HTML table from a list of regression objects}
 \usage{
-htmltable(obj_list = NULL, digits = 3, stars = TRUE, print = TRUE)
+htmltable(obj_list = NULL, digits = 3, head = TRUE, stars = TRUE,
+  print = TRUE)
 }
 \arguments{
 \item{obj_list}{a list of regression objects}

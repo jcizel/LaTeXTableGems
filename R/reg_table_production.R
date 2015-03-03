@@ -3,7 +3,7 @@ NULL
 
 star_patterns = list(
     html = "%s<sup>%s</sup>",
-    latex = "%s$%s$"    
+    latex = "%s$^{%s}$"    
 )
 
 star_signif = c(
@@ -73,8 +73,8 @@ extract_selected <- function(
         (
             data.table(
                 id = names(.),
-                value = . %>>% as.numeric,
-                key = 'id'
+                value = . %>>% as.numeric
+                ## key = 'id'
             )
         ) %>>%
         mutate(
@@ -87,9 +87,9 @@ extract_selected <- function(
     }) %>>%
     Reduce(
         f = function(...){
-            merge(..., by = 'id', all = TRUE)
+            merge.data.frame(..., by = 'id', all = TRUE, sort = FALSE)
         }
-    ) -> o
+    ) %>>% as.data.table -> o
 
     ## Stars
     if (stars == TRUE){
@@ -161,7 +161,12 @@ parse_result_list_coef<- function(
     obj_list = NULL,
     digits = 3,
     stars = TRUE,
-    type = 'html'
+    type = 'html',
+    drop_coef = NULL,
+    label_coef = FALSE,
+    lookup_table_coef = NULL,
+    lookup_table_coef_name_col = NULL,
+    lookup_table_coef_label_col = NULL
 ){
     ## Number each model
     names(obj_list) <- 1:length(obj_list) %>>% as.character
@@ -189,6 +194,16 @@ parse_result_list_coef<- function(
     ) ->
         o
 
+    if (!is.null(drop_coef)){
+        o[!id %>>%
+          grepl(
+              pattern = drop_coef %>>%
+              paste(collapse = "|"),
+              ignore.case = TRUE
+          )] ->
+              o
+    }
+
     ## ROW NAMES
     o[, group := rleid(id)]
     o[, group.row := 1:length(id), by = group]
@@ -196,6 +211,19 @@ parse_result_list_coef<- function(
       group.name := id]
 
     group_name <- o$group.name
+
+    if (label_coef == TRUE){
+        if (is.null(lookup_table_coef) |
+            is.null(lookup_table_coef_name_col) |
+            is.null(lookup_table_coef_label_col))
+            stop('`lookup_table_coef` is the obligatory argument if `label_vars==TRUE`')
+        
+        group_name %>>%
+        make_labels(lookup_table = lookup_table_coef,
+                    name_col = lookup_table_coef_name_col,
+                    label_col = lookup_table_coef_label_col) ->
+                        group_name
+    }
 
     o %>>%
     select(
@@ -266,7 +294,12 @@ parse_result_list_static <- function(
     obj_list = NULL,
     digits = 3,
     stars = NULL,
-    type = 'html'
+    type = 'html',
+    drop_stats = NULL,
+    label_stats = FALSE,
+    lookup_table_stats = NULL,
+    lookup_table_stats_name_col = NULL,
+    lookup_table_stats_label_col = NULL
 ){
     names(obj_list) <- 1:length(obj_list)
     
@@ -286,11 +319,35 @@ parse_result_list_static <- function(
     ) ->
         o
 
+
+    if (!is.null(drop_stats)){
+        o[!id %>>%
+          grepl(
+              pattern = drop_stats %>>%
+              paste(collapse = "|"),
+              ignore.case = TRUE
+          )] ->
+              o
+    }
+
     o[, lapply(.SD, function(c){
         c[is.na(c)] <- ""
         c
     })] ->
         o
+
+    if (label_stats == TRUE){
+        if (is.null(lookup_table_stats) |
+            is.null(lookup_table_stats_name_col) |
+            is.null(lookup_table_stats_label_col))
+            stop('`lookup_table_stats` is the obligatory argument if `label_vars==TRUE`')
+        
+        o$id %>>%
+        make_labels(lookup_table = lookup_table_stats,
+                    name_col = lookup_table_stats_name_col,
+                    label_col = lookup_table_stats_label_col) ->
+                        o$id
+    }    
     
     return(o)
 }
@@ -381,11 +438,37 @@ header_preparation <- function(
 
 
 header_latex <- function(
-    obj_list = NULL
+    obj_list = NULL,
+    label_dep = FALSE,
+    lookup_table_dep = NULL,
+    lookup_table_dep_name_col = NULL,
+    lookup_table_dep_label_col = NULL    
 ){
     obj_list %>>%
     header_preparation ->
         header
+
+    if (label_dep == TRUE){
+        if (is.null(lookup_table_dep) |
+            is.null(lookup_table_dep_name_col) |
+            is.null(lookup_table_dep_label_col))
+            stop('`lookup_table_dep` is the obligatory argument if `label_dep==TRUE`')
+        
+        header %>>% 
+        list.map(
+            . %>>%
+            list.update(
+                name = {
+                    name %>>%
+                    make_labels(lookup_table = lookup_table_dep,
+                                name_col = lookup_table_dep_name_col,
+                                label_col = lookup_table_dep_label_col)
+                }
+            )
+        ) ->
+            header
+        
+    }
 
     header %>>%
     list.map({
@@ -410,7 +493,7 @@ header_latex <- function(
             line
 
         list(
-            text = text %>>% unlist %>>% paste(collapse = ' & '),
+            text = text %>>% unlist %>>% paste(collapse = ' & ') %>>% sprintf(fmt = "& %s \\\\"),
             line = line %>>% unlist %>>% paste(collapse = ' ')
         )
     })    
@@ -418,11 +501,37 @@ header_latex <- function(
 
 
 header_html <- function(
-    obj_list = NULL
+    obj_list = NULL,
+    label_dep = FALSE,
+    lookup_table_dep = NULL,
+    lookup_table_dep_name_col = NULL,
+    lookup_table_dep_label_col = NULL    
 ){
     obj_list %>>%
     header_preparation ->
         header
+
+    if (label_dep == TRUE){
+        if (is.null(lookup_table_dep) |
+            is.null(lookup_table_dep_name_col) |
+            is.null(lookup_table_dep_label_col))
+            stop('`lookup_table_dep` is the obligatory argument if `label_dep==TRUE`')
+        
+        header %>>% 
+        list.map(
+            . %>>%
+            list.update(
+                name = {
+                    name %>>%
+                    make_labels(lookup_table = lookup_table_dep,
+                                name_col = lookup_table_dep_name_col,
+                                label_col = lookup_table_dep_label_col)
+                }
+            )
+        ) ->
+            header
+        
+    }    
 
     header %>>%
     list.map({
@@ -460,12 +569,28 @@ header_html <- function(
 
 header <- function(
     obj_list = NULL,
-    type = 'html'
+    type = 'html',
+    label_dep = FALSE,
+    lookup_table_dep = NULL,
+    lookup_table_dep_name_col = NULL,
+    lookup_table_dep_label_col = NULL
 ){
     switch(
         type,
-        'html' = header_html(obj_list),
-        'latex' = header_latex(obj_list)
+        'html' = header_html(
+            obj_list,
+            label_dep = label_dep,
+            lookup_table_dep = lookup_table_dep,
+            lookup_table_dep_name_col = lookup_table_dep_name_col,
+            lookup_table_dep_label_col = lookup_table_dep_label_col
+        ),
+        'latex' = header_latex(
+            obj_list,
+            label_dep = label_dep,
+            lookup_table_dep = lookup_table_dep,
+            lookup_table_dep_name_col = lookup_table_dep_name_col,
+            lookup_table_dep_label_col = lookup_table_dep_label_col            
+        )
     ) ->
         o
 
