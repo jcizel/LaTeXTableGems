@@ -14,137 +14,6 @@ star_signif = c(
 
 ## sprintf(star_patterns[['html']], 10, star_signif)
 
-sanitizer <- function(str, type = 'latex'){
-    if (type == 'latex'){
-        str %>>%
-        gsub(pattern = "\\\\", replacement = "SANITIZE.BACKSLASH") %>>%
-        ## gsub(pattern = "$", replacement = "\\$", fixed = TRUE) %>>%
-        gsub(pattern = ">", replacement = "$>$", fixed = TRUE) %>>%
-        gsub(pattern = "<", replacement = "$<$", fixed = TRUE) %>>%
-        gsub(pattern = "|", replacement = "$|$", fixed = TRUE) %>>%
-        ## gsub(pattern = "{", replacement = "\\{", fixed = TRUE) %>>%
-        ## gsub(pattern = "}", replacement = "\\}", fixed = TRUE) %>>%
-        gsub(pattern = "%", replacement = "\\%", fixed = TRUE) %>>%
-        gsub(pattern = "&", replacement = "\\&", fixed = TRUE) %>>%
-        gsub(pattern = "_", replacement = "\\_", fixed = TRUE) %>>%
-        gsub(pattern = "#", replacement = "\\#", fixed = TRUE) %>>%
-        ## gsub(pattern = "^", replacement = "\\verb|^|", fixed = TRUE) %>>%
-        gsub(pattern = "~", replacement = "\\~{}", fixed = TRUE) %>>%
-        gsub(pattern = "SANITIZE.BACKSLASH", replacement = "$\\backslash$", fixed = TRUE) ->
-            result
-    } else if (type == 'html') {
-        str %>>%
-        gsub(pattern = "&", replacement = "&amp;", fixed = TRUE)
-        gsub(pattern = ">", replacement = "&gt;", fixed = TRUE)
-        gsub(pattern = "<", replacement = "&lt;", fixed = TRUE) ->
-            result
-    } else {
-        stop('Type must be either `latex` or `html`')
-    }
-    
-    return(result)
-}
-
-##' Extract desired stats from R estimation object and return result in data.table
-##'
-##
-##' @param obj 
-##' @param select 
-##' @param digits 
-##' @param stars 
-##' @return data.table
-##' @author Janko Cizel
-##'
-##' @export
-##' 
-extract_selected <- function(
-    obj,
-    select = c('beta','se','pval'),
-    digits = 3,
-    stars = FALSE,
-    type = 'html'                       #'html' or 'latex'
-){
-    obj[select] %>>%
-    list.map({
-        o = .
-        name = .name
-        
-        o  %>>%
-        (
-            data.table(
-                id = names(.),
-                value = . %>>% as.numeric
-                ## key = 'id'
-            )
-        ) %>>%
-        mutate(
-            value = value %>>% round(digits = digits)
-        ) %>>%
-        setnames(
-            old = 'value',
-            new = name
-        )
-    }) %>>%
-    Reduce(
-        f = function(...){
-            merge.data.frame(..., by = 'id', all = TRUE, sort = FALSE)
-        }
-    ) %>>% as.data.table -> o
-
-    ## Stars
-    if (stars == TRUE){
-        if (!'pval' %in% names(o))
-            stop('`pval` must be included in `select` list in order to produce significance stars')
-        
-        o %>>%
-        apply(1, function(r){
-            if (r[['pval']] <= 0.01)
-                sprintf(star_patterns[[type]],
-                        r[['beta']],
-                        star_signif[3])
-            else if ((r[['pval']] > 0.01) & (r[['pval']] <= 0.05))
-                sprintf(star_patterns[[type]],
-                        r[['beta']],
-                        star_signif[2])
-            else if ((r[['pval']] > 0.05) & (r[['pval']] <= 0.10))
-                sprintf(star_patterns[[type]],
-                        r[['beta']],
-                        star_signif[1])
-            else
-                sprintf("%s",
-                        r[['beta']])
-        }) ->
-            beta_char
-
-        o[, beta.star := beta_char]
-    }
-
-    ## Format standard errors
-    o %>>%
-    apply(1, function(r){
-        sprintf(
-            "(%s)",
-            r[['se']]            
-        )
-    }) ->
-        se_char
-
-    o[, se.fmt := se_char]
-
-
-    ## Final steps
-    select <- c('beta.star','se.fmt',select)
-    
-    o %>>%
-    melt.data.table(id.vars = 'id') %>>%
-    mutate(
-        variable = factor(variable, levels = select)
-    ) %>>% 
-    arrange(
-        id,
-        variable
-    )    
-}
 
 ##' Given a list of objects with regression results, return a data.table with
 ##' publication-ready formatted results.
@@ -251,34 +120,6 @@ parse_result_list_coef<- function(
 
 
 
-extract_static_elements <- function(
-    obj = NULL,
-    digits =3,
-    type = 'html'
-){
-    obj %>>%
-    summary %>>%
-    list.filter(
-        length(.) == 1 &
-            !is.list(.)
-    ) %>>%
-    list.map({
-        x = .
-
-        if (!is.integer(x) & !is.logical(x) & is.numeric(x))
-            x %>>% round(digits)
-        else
-            x
-    }) %>>%
-    ({
-        data.table(
-            id = names(.),
-            value = sprintf("%s", .)
-        )
-    })
-}
-
-
 
 ##' Given a list of objects with regression results, return a data.table that
 ##' contains `non-coefficient` estimation results
@@ -306,7 +147,7 @@ parse_result_list_static <- function(
     obj_list %>>%
     list.map(
         . %>>%
-        extract_static_elements(digits = digits) %>>%
+        extract_stats(digits = digits) %>>%
         setnames(
             old = 'value',
             new = sprintf("(%s)", .name)
@@ -353,37 +194,12 @@ parse_result_list_static <- function(
 }
 
 
-
-
-
-##' Given a list of objects with regression results, return a list of strings
-##' that serve as header decorations in a latex table
-##'
-##' 
-##' @param obj_list 
-##' @return NULL
-##' @author Janko Cizel
-##'
-##' @export
 header_preparation <- function(
     obj_list = NULL
 ){
     obj_list %>>%
     list.map({
-        . %>>%
-        attr("class") ->
-            model_name
-
-        . %>>%
-        attr("call") %>>%
-        all.vars %>>%
-        (.[[1L]]) ->
-            model_depvar
-
-        data.table(
-            model_name = model_name,
-            model_depvar = model_depvar
-        )
+        . %>>% extract_header_info
     }) %>>%
     rbindlist ->
         o
@@ -435,7 +251,6 @@ header_preparation <- function(
     
     return(out)
 }
-
 
 header_latex <- function(
     obj_list = NULL,
