@@ -47,6 +47,7 @@ extract_selected.felm <- function(
             merge.data.frame(..., by = 'id', all = TRUE, sort = FALSE)
         }
     ) %>>% as.data.table -> o
+    
 
     ## Stars
     if (stars == TRUE){
@@ -74,13 +75,15 @@ extract_selected.felm <- function(
             beta_char
 
         o[, beta.star := beta_char]
+    } else {
+        o[, beta.star := beta]
     }
 
     ## Format standard errors
     o %>>%
     apply(1, function(r){
         sprintf(
-            "(%s)   ",
+            "(%s)",
             r[['se']]            
         )
     }) ->
@@ -88,11 +91,17 @@ extract_selected.felm <- function(
 
     o[, se.fmt := se_char]
 
+    ## Presentation option for latex: force new line within a cell See:
+    ## http://tex.stackexchange.com/questions/2441/how-to-add-a-forced-line-break-inside-a-table-cell
+    o[, T2 := sprintf('\\specialcell{%s\\\\(%s)}',beta.star,se)]    
 
     ## Final steps
-    select <- c('beta.star','se.fmt',select)
+    select <- c('T2','se.fmt','beta.star',select)
     
     o %>>%
+    mutate(
+        id = factor(id, levels = id)
+    ) %>>%
     melt.data.table(id.vars = 'id') %>>%
     mutate(
         variable = factor(variable, levels = select)
@@ -165,8 +174,11 @@ extract_selected.lm <- function(
 
     ## Final steps
     select <- c('beta.star','se.fmt')
-    
+
     o %>>%
+    mutate(
+        id = factor(id, levels = id)
+    ) %>>%
     melt.data.table(id.vars = 'id') %>>%
     mutate(
         variable = factor(variable, levels = select)
@@ -177,5 +189,5 @@ extract_selected.lm <- function(
     ) %>>%
     subset(
         variable %in% select
-    )
+    )    
 }

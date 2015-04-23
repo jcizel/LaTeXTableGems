@@ -1,20 +1,3 @@
-#' @import data.table pipeR rlist dplyr rprintf xtable stringr htmltools
-NULL
-
-star_patterns = list(
-    html = "%s<sup>%s</sup>",
-    latex = "%s$^{%s}$"    
-)
-
-star_signif = c(
-    `10%` = "*",
-    `5%` = "**",
-    `1%` = "***"
-)
-
-## sprintf(star_patterns[['html']], 10, star_signif)
-
-
 ##' Given a list of objects with regression results, return a data.table with
 ##' publication-ready formatted results.
 ##'
@@ -31,23 +14,30 @@ parse_result_list_coef<- function(
     digits = 3,
     stars = TRUE,
     type = 'html',
+    coef.presentation = 'T1',
     drop_coef = NULL,
+    keep_coef = NULL,
+    order_coef = NULL,
     label_coef = FALSE,
     lookup_table_coef = NULL,
     lookup_table_coef_name_col = NULL,
-    lookup_table_coef_label_col = NULL
+    lookup_table_coef_label_col = NULL,
+    label_pattern = "[%s]"
 ){
+    if (!is.null(drop_coef) & !is.null(keep_coef))
+        stop("Cannot specify `drop_coef' and `keep_coef' simultaniously!")
+    
     ## Number each model
     names(obj_list) <- 1:length(obj_list) %>>% as.character
 
-    select = c('beta','se','pval')
     obj_list %>>%
     list.map(
         . %>>%
-        extract_selected(select = select,
-                         stars = stars,
-                         digits = digits,
-                         type = type) %>>%
+        extract_selected(
+            stars = stars,
+            digits = digits,
+            type = type
+        ) %>>%
         setnames(
             old = 'value',
             new = sprintf("(%s)", .name)
@@ -58,9 +48,19 @@ parse_result_list_coef<- function(
             merge(..., by = c('id','variable'), all = TRUE)
         }
     ) %>>%
-    subset(
-        variable %in% c('beta.star','se.fmt')
-    ) ->
+    ({
+        if (coef.presentation == 'T1'){
+            . %>>%
+            subset(
+                variable %in% c('beta.star','se.fmt')
+            )
+        } else if ((coef.presentation == 'T2')){
+            . %>>%
+            subset(
+                variable %in% c('T2')
+            )
+        }
+    })  ->
         o
 
     if (!is.null(drop_coef)){
@@ -73,6 +73,32 @@ parse_result_list_coef<- function(
               o
     }
 
+    if (!is.null(keep_coef)){
+        o[id %>>%
+          grepl(
+              pattern = keep_coef %>>%
+              paste(collapse = "|"),
+              ignore.case = TRUE
+          )] ->
+              o
+    }    
+
+    if (!is.null(order_coef)){
+        o %>>%
+        mutate(
+            id = id %>>%
+            as.character %>>%
+            factor(levels = order_coef)
+        ) %>>%
+        arrange(
+            id
+        ) %>>%
+        subset(
+            !is.na(id)
+        ) ->
+            o        
+    }
+    
     ## ROW NAMES
     o[, group := rleid(id)]
     o[, group.row := 1:length(id), by = group]
@@ -87,10 +113,11 @@ parse_result_list_coef<- function(
             is.null(lookup_table_coef_label_col))
             stop('`lookup_table_coef` is the obligatory argument if `label_vars==TRUE`')
         
-        group_name %>>%
+        group_name %>>% as.character %>>%
         make_labels(lookup_table = lookup_table_coef,
                     name_col = lookup_table_coef_name_col,
-                    label_col = lookup_table_coef_label_col) ->
+                    label_col = lookup_table_coef_label_col,
+                    label_pattern = label_pattern) ->
                         group_name
     }
 
@@ -110,7 +137,11 @@ parse_result_list_coef<- function(
     }) -> o
 
     o[, lapply(.SD, function(c){
-        c[is.na(c)] <- ""
+        c %>>% as.character ->
+            c
+        
+        c[is.na(c) |
+              (c %>>% sprintf(fmt = label_pattern)) == ('NA' %>>% sprintf(fmt = label_pattern))] <- ""
         c
     })] ->
         o
@@ -137,10 +168,13 @@ parse_result_list_static <- function(
     stars = NULL,
     type = 'html',
     drop_stats = NULL,
+    keep_stats = NULL,
+    order_stats = NULL,    
     label_stats = FALSE,
     lookup_table_stats = NULL,
     lookup_table_stats_name_col = NULL,
-    lookup_table_stats_label_col = NULL
+    lookup_table_stats_label_col = NULL,
+    label_pattern = "[%s]"
 ){
     names(obj_list) <- 1:length(obj_list)
     
@@ -171,6 +205,32 @@ parse_result_list_static <- function(
               o
     }
 
+    if (!is.null(keep_stats)){
+        o[id %>>%
+          grepl(
+              pattern = keep_stats %>>%
+              paste(collapse = "|"),
+              ignore.case = TRUE
+          )] ->
+              o
+    }    
+
+    if (!is.null(order_stats)){
+        o %>>%
+        mutate(
+            id = id %>>%
+            as.character %>>%
+            factor(levels = order_stats)
+        ) %>>%
+        arrange(
+            id
+        ) %>>%
+        subset(
+            !is.na(id)
+        ) ->
+            o        
+    }    
+
     o[, lapply(.SD, function(c){
         c[is.na(c)] <- ""
         c
@@ -183,10 +243,11 @@ parse_result_list_static <- function(
             is.null(lookup_table_stats_label_col))
             stop('`lookup_table_stats` is the obligatory argument if `label_vars==TRUE`')
         
-        o$id %>>%
+        o$id %>>% as.character %>>%
         make_labels(lookup_table = lookup_table_stats,
                     name_col = lookup_table_stats_name_col,
-                    label_col = lookup_table_stats_label_col) ->
+                    label_col = lookup_table_stats_label_col,
+                    label_pattern = label_pattern) ->
                         o$id
     }    
     
@@ -197,6 +258,8 @@ parse_result_list_static <- function(
 header_preparation <- function(
     obj_list = NULL
 ){
+    N = length(obj_list) + 1
+    
     obj_list %>>%
     list.map({
         . %>>% extract_header_info
@@ -257,8 +320,14 @@ header_latex <- function(
     label_dep = FALSE,
     lookup_table_dep = NULL,
     lookup_table_dep_name_col = NULL,
-    lookup_table_dep_label_col = NULL    
+    lookup_table_dep_label_col = NULL,
+    label_pattern = "[%s]",
+    table.width = 14,
+    first.col.width = 3
 ){
+    N = length(obj_list) + 1
+    col.width = (table.width - first.col.width) / (N-1)
+    
     obj_list %>>%
     header_preparation ->
         header
@@ -274,10 +343,11 @@ header_latex <- function(
             . %>>%
             list.update(
                 name = {
-                    name %>>%
+                    name %>>% as.character %>>%
                     make_labels(lookup_table = lookup_table_dep,
                                 name_col = lookup_table_dep_name_col,
-                                label_col = lookup_table_dep_label_col)
+                                label_col = lookup_table_dep_label_col,
+                                label_pattern = label_pattern)
                 }
             )
         ) ->
@@ -290,8 +360,9 @@ header_latex <- function(
         . %>>%
         list.map({
             sprintf(
-                fmt = "\\multicolumn{%s}{c}{%s}",
+                fmt = "\\multicolumn{%s}{C{%scm}}{%s}",
                 .$length,
+                .$length * col.width,
                 .$name
             )      
         }) ->
@@ -308,7 +379,7 @@ header_latex <- function(
             line
 
         list(
-            text = text %>>% unlist %>>% paste(collapse = ' & ') %>>% sprintf(fmt = "& %s \\\\"),
+            text = text %>>% sanitizer %>>% unlist %>>% paste(collapse = ' & ') %>>% sprintf(fmt = "& %s \\\\"),
             line = line %>>% unlist %>>% paste(collapse = ' ')
         )
     })    
@@ -320,7 +391,9 @@ header_html <- function(
     label_dep = FALSE,
     lookup_table_dep = NULL,
     lookup_table_dep_name_col = NULL,
-    lookup_table_dep_label_col = NULL    
+    lookup_table_dep_label_col = NULL,
+    label_pattern = "[%s]",
+    table.width = 14
 ){
     obj_list %>>%
     header_preparation ->
@@ -340,7 +413,8 @@ header_html <- function(
                     name %>>%
                     make_labels(lookup_table = lookup_table_dep,
                                 name_col = lookup_table_dep_name_col,
-                                label_col = lookup_table_dep_label_col)
+                                label_col = lookup_table_dep_label_col,
+                                label_pattern = label_pattern)
                 }
             )
         ) ->
@@ -388,7 +462,10 @@ header <- function(
     label_dep = FALSE,
     lookup_table_dep = NULL,
     lookup_table_dep_name_col = NULL,
-    lookup_table_dep_label_col = NULL
+    lookup_table_dep_label_col = NULL,
+    label_pattern = "[%s]",
+    table.width = 14,
+    first.col.width = 3
 ){
     switch(
         type,
@@ -404,7 +481,10 @@ header <- function(
             label_dep = label_dep,
             lookup_table_dep = lookup_table_dep,
             lookup_table_dep_name_col = lookup_table_dep_name_col,
-            lookup_table_dep_label_col = lookup_table_dep_label_col            
+            lookup_table_dep_label_col = lookup_table_dep_label_col,
+            label_pattern = label_pattern,
+            table.width = table.width,
+            first.col.width = first.col.width
         )
     ) ->
         o

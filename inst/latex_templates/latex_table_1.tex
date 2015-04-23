@@ -1,0 +1,44 @@
+% Required stuff:
+% \usepackage{array}
+% \usepackage{booktabs}
+% \usepackage{threeparttable}
+
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+\begin{table}
+
+\centering
+
+\begin{threeparttable}
+
+\caption{ {{caption}} }
+
+\{{textsize}}
+
+\begin{tabular}{ {{widths}} }
+
+\toprule
+
+{{{content}}}
+
+{{{addrows}}}
+
+\addlinespace[.75ex]
+\bottomrule
+
+\end{tabular}
+
+\label{tab:{{label}} }
+
+\begin{tablenotes}
+\scriptsize
+\item Notes:
+{{notes}}
+
+\end{tablenotes}
+
+\end{threeparttable}
+
+\end{table}

@@ -47,7 +47,7 @@ make_labels <- function(
 sanitizer <- function(str, type = 'latex'){
     if (type == 'latex'){
         str %>>%
-        gsub(pattern = "\\\\", replacement = "SANITIZE.BACKSLASH") %>>%
+        ## gsub(pattern = "\\\\", replacement = "SANITIZE.BACKSLASH") %>>%
         ## gsub(pattern = "$", replacement = "\\$", fixed = TRUE) %>>%
         gsub(pattern = ">", replacement = "$>$", fixed = TRUE) %>>%
         gsub(pattern = "<", replacement = "$<$", fixed = TRUE) %>>%
