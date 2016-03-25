@@ -22,7 +22,7 @@ star_signif = c(
 ##' .. content for \description{} (no empty lines) ..
 ##'
 ##' .. content for \details{} ..
-##' @title 
+##' @title To be completed
 ##' @param obj_list 
 ##' @param type 
 ##' @param ... 

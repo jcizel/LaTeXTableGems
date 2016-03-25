@@ -3,16 +3,22 @@ Title: Scaffold LaTeX and HTML Tables from R Regression Objects with Ease
 Version: 0.1
 Date: 2015-02-24
 Authors@R: as.person(c("Janko Cizel <jcizel@gmail.com> [aut, cre]"))
-Description: The package provides an array of utilities that aid an easy production of publication-quality LaTeX and HTML tables. In contrast to other similar packages, `rtable` allows users a great degree of flexibility in styling the tables.
+Description: The package provides an array of utilities that aid an easy
+    production of publication-quality LaTeX and HTML tables. In contrast to other
+    similar packages, `rtable` allows users a great degree of flexibility in styling
+    the tables.
 Depends:
-	R (>= 3.1.1),
-Imports: data.table,
-	 pipeR,
-	 rlist,
-	 dplyr,
-	 xtable,
-	 stringr,
-	 htmltools
+    R (>= 3.1.1),
+Imports:
+    data.table,
+    pipeR,
+    rlist,
+    dplyr,
+    xtable,
+    stringr,
+    htmltools,
+    whisker
 License: MIT + file LICENSE
 LazyData: true
 VignetteBuilder: knitr
+RoxygenNote: 5.0.1

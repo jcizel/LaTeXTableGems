@@ -1,0 +1,37 @@
+\newcommand{\Figtext}[1]{%
+  \begin{tablenotes}[para,flushleft]
+    \hspace{6pt}
+    \hangindent=1.75em
+    #1
+  \end{tablenotes}
+}
+\newcommand{\Starnote}{\Figtext{* p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01. Standard
+    errors in parentheses.}}% Add significance note with \starnote
+\newcommand{\sym}[1]{\rlap{#1}}% Thanks David Carlisle
+
+\begin{table}\centering
+\begin{threeparttable}
+\scriptsize
+
+\caption{Decomposition of Variation in Accounting Fundamentals}
+
+\begin{tabular}
+  {@{\hskip\tabcolsep\extracolsep\fill}l*{#NCOLS}{S[table-format=4.4,table-number-alignment=center,table-column-width=12mm]}}
+  \toprule
+
+  \input{...}
+  \bottomrule
+  \addlinespace[.75ex]
+\end{tabular}
+
+\begin{tablenotes}
+  \label{tab:roc.results}
+  \scriptsize
+\item Notes:
+  \item[a]
+  \end{tablenotes}
+\label{tab:variation}
+\end{threeparttable}
+\end{table}
+
+

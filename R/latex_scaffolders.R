@@ -1,3 +1,4 @@
+#' @export
 latextable_inner <- function(
     data = NULL,
     digits = 2
@@ -207,7 +208,7 @@ latextable <- function(
     ## ---------------------------------------------------------------------- ##
     ## OUTPUT FILE                                                            ##
     ## ---------------------------------------------------------------------- ##
-    template <- readLines("./inst/latex_templates/latex_table_2.tex")
+    template <- readLines(system.file('./latex_templates/latex_table_2.tex',package = 'rtable'))
 
     list(
         caption = caption,

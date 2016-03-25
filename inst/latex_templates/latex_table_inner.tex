@@ -1,0 +1,72 @@
+% Required stuff:
+% \usepackage{array}
+% \usepackage{booktabs}
+% \usepackage{threeparttable}
+% \usepackage{calc}               % perform calculations
+% \usepackage{siunitx}
+% \sisetup{
+%   detect-mode,
+%   tight-spacing           = true,
+%   group-digits            = false,
+%   input-signs             = ,
+%   input-symbols           = ,
+%   input-open-uncertainty  = ,
+%   input-close-uncertainty = ,
+%   table-align-text-pre    = false,
+%   table-align-text-post   = false,
+%   % round-mode              = figures,
+%   % round-precision         = 3,
+%   table-space-text-pre    = [,
+%   table-space-text-post   = ],
+% }
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+% \newcommand{\sym}[1]{\rlap{#1}}% Thanks David Carlisle
+% \newcommand{\Starnote}{\Figtext{* p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01. Standard
+%     errors in parentheses.}}% Add significance note with \starnote
+
+%     NOTES:
+% - in SIUNITX text enteries should be braced {} in order to be interpreted as text!!
+
+\begin{table}
+
+\centering
+
+\begin{threeparttable}
+
+\caption{ {{caption}} }
+
+\{{textsize}}
+
+\begin{tabular}
+  {L{4cm}
+    *{ {{ncol}} }{S[
+      table-format=4.4,
+      table-number-alignment=center,
+      table-column-width={{colwidth}}cm]}
+  }
+
+  \toprule
+
+  {{{content}}}
+
+  \bottomrule
+  \addlinespace[.75ex]
+\end{tabular}
+
+\label{tab:{{label}} }
+
+\begin{tablenotes}
+\scriptsize
+\item Notes:
+{{{notes}}}
+
+\end{tablenotes}
+
+\end{threeparttable}
+
+\end{table}
+
+
